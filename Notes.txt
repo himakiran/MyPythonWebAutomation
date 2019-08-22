@@ -1,0 +1,12 @@
+
+conda activate py3
+conda install -c conda-forge selenium
+
+In VS Code
+To select a specific environment, use the Python: Select Interpreter command from the Command Palette (⇧⌘P).
+
+Download chromedriver from  https://sites.google.com/a/chromium.org/chromedriver/downloads
+
+and
+
+mv /Volumes/DATA/Downloads/chromedriver /usr/local/bin
