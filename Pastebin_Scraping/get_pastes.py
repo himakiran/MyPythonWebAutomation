@@ -1,5 +1,9 @@
 
-# Pastebin Pro account scraper
+# Pastebin Pro account scraper 
+# Author himakiran@gmail.com
+# This program scrapes pastebin posts using the official pastebin API
+
+
 import requests
 import json
 import constants
@@ -14,6 +18,9 @@ titles_and_keys = []
 keywords  = []
 
 def get_250_pastes():
+	"""
+	Get the maximum pastes allowed by pastebin official api
+	"""
 	#print("Entering get_250_pastes \n")
 	url = "https://scrape.pastebin.com/api_scraping.php?limit=250"
 	s = requests.Session()
@@ -51,8 +58,11 @@ def get_250_pastes():
 	
 
 
-# load keys from keys file to keys set to avoid redundancy
+
 def load_keys_to_list():
+	"""
+	load keys from keys file to keys set to avoid redundancy
+	"""
 	#print("Entering load_keys_to_list \n")
 	filename = constants.DIR_PATH+constants.FILENAME_KEYS+constants.FILENAME_EXT
 	with open(filename,'r') as fname:
@@ -67,8 +77,11 @@ def load_keys_to_list():
 	
 	
 
-# load users from users file to users set to avoid redundancy
+
 def load_users_to_list():
+	"""
+	load users from users file to users set to avoid redundancy
+	"""
 	#print("Entering load_users_to_set\n")
 	filename = constants.DIR_PATH+constants.FILENAME_USERS+constants.FILENAME_EXT
 	with open(filename,'r') as fname:
@@ -82,16 +95,29 @@ def load_users_to_list():
 	#print("Exiting load_users_to_set\n")
 	
 	
-# save all keys to a keys file
+
 def save_keys_to_file(keys):
+	"""
+	save all scraped keys without duplicates to the keys file
+
+	Parameters:
+    keys (set): All previously and presently scraped keys set.
+	"""
 	#print("Entering save_keys_to_file\n")
 	filename = constants.DIR_PATH+constants.FILENAME_KEYS+constants.FILENAME_EXT
 	with open(filename,'w+') as fname:
 		for each in keys:
 			fname.write(each+"\n")
 	#print("Exiting save_keys_to_file\n")
-# save all users to a users file
+
+
 def save_users_to_file(users):
+	"""
+	save all scraped users without duplicates to the users file
+
+	Parameters:
+    users (set): All previously and presently scraped keys set.
+	"""
 	#print("Entering save_users_to_file\n")
 	filename = constants.DIR_PATH+constants.FILENAME_USERS+constants.FILENAME_EXT
 	with open(filename,'w+') as fname:
@@ -99,13 +125,21 @@ def save_users_to_file(users):
 			fname.write(each+"\n")
 	#print("Exiting save_users_to_file\n")
 
-# save pastes with titles and all pastes with first 10 lines of body 
+
 def save_pastes(titles_and_keys):
+	"""
+	save all pastes with first 10 lines of body to a file
+
+	Parameters:
+    titles_and_keys (list): A list of tuples consisting of title and key of each post
+
+	"""
 	#print("Entering save_pastes \n")
 	url = "https://scrape.pastebin.com/api_scrape_item.php?i="
 	s = requests.Session()
 	filename = constants.DIR_PATH+constants.FILENAME_PASTES+constants.FILENAME_EXT
 	with open(filename,'w+') as fname:
+		print("\n\tSaving pastes in pastes.txt ...\n")
 		for each in tqdm(titles_and_keys):
 			title,key = each
 			fname.write("\n================================================================================================\n")
@@ -121,49 +155,73 @@ def save_pastes(titles_and_keys):
 			fname.write("\n================================================================================================\n")
 	#print("Exiting save_pastes\n")
 
-#scrapes each paste and checks ifts important by checking for keyword in the paste body
-async def scrape_urls_for_keyword():
-	#print("Entering scrape_urls_for_keyword\n")
-	important_pastes =[]
-	load_keywords()
-	scrape_url = "https://scrape.pastebin.com/api_scrape_item.php?i="
-	s = requests.Session()
-	for each in new_keys_scraped:
-		res = s.get(scrape_url+each)
-		for keyword in keywords:
-			if(keyword in res.text):
-				important_pastes.append((keyword,each))
-	write_imp_pastes_to_file(important_pastes)
-	#print("Exiting scrape_urls_for_keyword\n")
-
-# loads keywords from file to keylist
 def load_keywords():
+	"""
+	loads keywords from file to keylist
+	"""
 	#print("Entering load_keywords\n")
 	filename = constants.DIR_PATH+constants.FILENAME_KEYWORDS+constants.FILENAME_EXT
 	with open(filename, 'r') as fname:
 		for line in fname:
 			keyword = line.strip()
 			keywords.append(keyword)
+	
 	#print("Exiting load_keywords\n")
 
-# Write all important pastes where keywords were found in a file
+
+async def scrape_urls_for_keyword():
+	"""
+	scrapes each paste and checks for keyword in the paste body
+
+	"""
+	#print("Entering scrape_urls_for_keyword\n")
+	print("\n\tscraping pastes for keywords ... \n")
+	important_pastes =[]
+	load_keywords()
+	for each in tqdm(paste_url_keys):
+		url = "https://scrape.pastebin.com/api_scrape_item.php?i="
+		s = requests.Session()
+		paste = s.get(url+each)
+		lines = textwrap.wrap(paste.text, width=50)
+		for keyword in keywords:
+			for line in lines:
+				if(keyword in line):
+					important_pastes.append((keyword,each))
+					break
+	write_imp_pastes_to_file(important_pastes)
+	#print("Exiting scrape_urls_for_keyword\n")
+
+
+
+
 def write_imp_pastes_to_file(imp_list):
+	"""
+	Write all important pastes where keywords were found in a file
+	Parameters:
+    imp_list (list): A list of tuples each of which contains the keyword and the paste key
+	"""
 	new_keys_list = []
 	#print("Entering write_imp_pastes_to_file\n")
 	filename = constants.DIR_PATH+constants.FILENAME_IMP_PASTES+constants.FILENAME_EXT
-	with open(filename, 'a+') as fname:
+	with open(filename, 'w') as fname:
 		for each in imp_list:
 			fname.write(each[0]+" : "+"https://pastebin.com/"+each[1]+"\n")
 			new_keys_list.append(each[1])
 
 	# ask user if he wants to see the pastes now
-	if input('Do You Want To Continue? [y/n]') != 'y':
+	if input('Do You Want To See the pastes now ? [y/n]') != 'y':
 		quit()
 	else:
-		open_new_urls_in_tabs(new_keys_list)
+		open_imp_urls_in_tabs(new_keys_list)
 	#print("Exiting write_imp_pastes_to_file\n")
 
-def open_new_urls_in_tabs(list_of_paste_urls):
+def open_imp_urls_in_tabs(list_of_paste_urls):
+	"""
+	Opens the important urls in the default web browser limited to selected
+	no of tabs as decided by constants.NO_OF_TABS_AT_A_TIME
+	Parameters:
+    list_of_paste_urls (list): list of paste keys deemed important
+    """
 	len_list = len(list_of_paste_urls)
 	i = 1
 	while i <= len_list:
@@ -177,7 +235,12 @@ def open_new_urls_in_tabs(list_of_paste_urls):
 				webbrowser.open_new_tab("https://pastebin.com/"+list_of_paste_urls[i-1])
 				i+=1
 
-def open_pastes_of_users():
+def open_all_pastes():
+	"""
+	Opens all the urls in the default web browser limited to selected
+	no of tabs as decided by constants.NO_OF_TABS_AT_A_TIME
+	
+    """
 	len_list = len(paste_url_users)
 	i = 1
 	while i <= len_list:
@@ -195,9 +258,9 @@ if __name__ == '__main__':
 	# get previous values to avoid redundant already crawled pastes
 	load_keys_to_list()
 	load_users_to_list()
-	#open_pastes_of_users()
+	#open_all_pastes()
 	get_250_pastes()
-	#asyncio.run(scrape_urls_for_keyword())
+	asyncio.run(scrape_urls_for_keyword())
 	
 
 
